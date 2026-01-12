@@ -11,7 +11,7 @@ from service.nutrition_service import (
 
 def run_chat(profile, message: str) -> dict:
     """
-    Chatbot nutrition flexible (V1 stable)
+    Chatbot nutrition flexible (optimisé pour rapidité)
     """
 
     # 🔢 Contexte calculé côté backend
@@ -19,28 +19,14 @@ def run_chat(profile, message: str) -> dict:
     calories = calculate_calories(bmr, profile.objectif)
     proteins = calculate_proteins(profile.poids)
 
-    prompt = f"""
-Tu es un chatbot conversationnel spécialisé en alimentation et nutrition sportive.
+    # Prompt court et optimisé
+    prompt = f"""Tu es un expert nutrition. Réponds brièvement (2-3 phrases max).
 
-Tu peux :
-- proposer des repas (petit-déjeuner, déjeuner, dîner)
-- proposer un plan pour une journée ou une semaine
-- donner des conseils nutritionnels
+Infos utilisateur: {calories} kcal/jour, {proteins}g protéines/jour
 
-RÈGLES :
-- Réponds UNIQUEMENT dans le domaine alimentation / sport
-- Si la question est hors sujet, dis-le poliment
-- Adapte précisément ta réponse à la demande
+Question: {message}
 
-CONTEXTE UTILISATEUR :
-- Calories estimées : {calories} kcal / jour
-- Protéines estimées : {proteins} g / jour
-
-QUESTION UTILISATEUR :
-{message}
-
-Réponse :
-"""
+Réponds directement:"""
 
     try:
         # quick connectivity check
@@ -54,12 +40,16 @@ Réponse :
             "model": OLLAMA_MODEL,
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
-            "options": {"temperature": 0.3},
+            "options": {
+                "temperature": 0.3,
+                "num_predict": 150,  # Limite à 150 tokens pour plus de rapidité
+            },
         }
 
         print("OLLAMA REQUEST PAYLOAD:", json.dumps(payload)[:2000])
 
-        r = requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, timeout=120)
+        # Timeout réduit à 60s au lieu de 120s
+        r = requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, timeout=60)
         print("OLLAMA HTTP STATUS:", r.status_code)
         text_preview = (r.text[:2000] + "...") if len(r.text) > 2000 else r.text
         print("OLLAMA RESPONSE TEXT:", text_preview)
@@ -93,6 +83,9 @@ Réponse :
         else:
             response = response.strip()
 
+    except requests.Timeout:
+        print("TIMEOUT OLLAMA - Réponse trop lente")
+        response = "La réponse de l'IA a pris trop de temps. Essayez avec une question plus courte."
     except Exception as e:
         print("ERREUR OLLAMA :", repr(e))
         traceback.print_exc()

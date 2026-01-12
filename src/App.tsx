@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import ProfileForm from "./components/ProfileForm";
-import NutritionResults from "./components/NutritionResults";
-import ChatInterface from "./components/ChatInterface";
-import FoodSearch from "./components/FoodSearch";
+const NutritionResults = lazy(() => import("./components/NutritionResults"));
+const ChatInterface = lazy(() => import("./components/ChatInterface"));
+const FoodSearch = lazy(() => import("./components/FoodSearch"));
 import {
   NutritionProfile,
   NutritionResult,
@@ -132,46 +132,52 @@ function App() {
         )}
 
         {currentView === "results" && results && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Vos besoins nutritionnels
-              </h2>
-              <p className="text-gray-600">
-                Calculés avec la formule Mifflin-St Jeor
-              </p>
+          <Suspense fallback={<div className="text-center py-8">Chargement...</div>}>
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Vos besoins nutritionnels
+                </h2>
+                <p className="text-gray-600">
+                  Calculés avec la formule Mifflin-St Jeor
+                </p>
+              </div>
+              <NutritionResults result={results} />
             </div>
-            <NutritionResults result={results} />
-          </div>
+          </Suspense>
         )}
 
         {currentView === "chat" && profile && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Chat avec l'Assistant IA
-              </h2>
-              <p className="text-gray-600">
-                Posez vos questions et obtenez des recommandations
-                personnalisées
-              </p>
+          <Suspense fallback={<div className="text-center py-8">Chargement du chat...</div>}>
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Chat avec l'Assistant IA
+                </h2>
+                <p className="text-gray-600">
+                  Posez vos questions et obtenez des recommandations
+                  personnalisées
+                </p>
+              </div>
+              <ChatInterface profile={profile} />
             </div>
-            <ChatInterface profile={profile} />
-          </div>
+          </Suspense>
         )}
 
         {currentView === "search" && (
-          <div className="max-w-6xl mx-auto">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Recherche d'aliments
-              </h2>
-              <p className="text-gray-600">
-                Explorez la base de données nutritionnelles
-              </p>
+          <Suspense fallback={<div className="text-center py-8">Chargement de la recherche...</div>}>
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Recherche d'aliments
+                </h2>
+                <p className="text-gray-600">
+                  Explorez la base de données nutritionnelles
+                </p>
+              </div>
+              <FoodSearch />
             </div>
-            <FoodSearch />
-          </div>
+          </Suspense>
         )}
       </main>
 
