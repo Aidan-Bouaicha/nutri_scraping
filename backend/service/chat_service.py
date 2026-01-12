@@ -59,7 +59,7 @@ Réponse :
 
         print("OLLAMA REQUEST PAYLOAD:", json.dumps(payload)[:2000])
 
-        r = requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, timeout=60)
+        r = requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, timeout=120)
         print("OLLAMA HTTP STATUS:", r.status_code)
         text_preview = (r.text[:2000] + "...") if len(r.text) > 2000 else r.text
         print("OLLAMA RESPONSE TEXT:", text_preview)
