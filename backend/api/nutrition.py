@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from schemas.chat import NutritionProfile
+from schemas.nutrition import NutritionProfile
 from service.nutrition_service import (
     calculate_bmr,
     calculate_calories,
