@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useEffect } from "react";
 import ProfileForm from "./components/ProfileForm";
 const NutritionResults = lazy(() => import("./components/NutritionResults"));
 const ChatInterface = lazy(() => import("./components/ChatInterface"));
@@ -12,11 +12,35 @@ import { Apple, MessageCircle, Search, Calculator } from "lucide-react";
 
 type View = "profile" | "results" | "chat" | "search";
 
+const APP_STATE_KEY = "nutritionAppState";
+
+const saveAppState = (view: View, profile: NutritionProfile | null, results: NutritionResult | null) => {
+  localStorage.setItem(APP_STATE_KEY, JSON.stringify({ view, profile, results }));
+};
+
+const loadAppState = () => {
+  const stored = localStorage.getItem(APP_STATE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
 function App() {
-  const [currentView, setCurrentView] = useState<View>("profile");
-  const [profile, setProfile] = useState<NutritionProfile | null>(null);
-  const [results, setResults] = useState<NutritionResult | null>(null);
+  const savedState = loadAppState();
+  const [currentView, setCurrentView] = useState<View>(savedState?.view || "profile");
+  const [profile, setProfile] = useState<NutritionProfile | null>(savedState?.profile || null);
+  const [results, setResults] = useState<NutritionResult | null>(savedState?.results || null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Sauvegarder l'état à chaque changement
+  useEffect(() => {
+    saveAppState(currentView, profile, results);
+  }, [currentView, profile, results]);
 
   const handleProfileSubmit = async (newProfile: NutritionProfile) => {
     setIsLoading(true);
