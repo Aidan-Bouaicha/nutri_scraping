@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NutritionProfile, MCPResponse, nutritionAPI } from "../services/api";
 
 type ChatMessage = {
@@ -10,16 +10,42 @@ interface ChatInterfaceProps {
   profile: NutritionProfile;
 }
 
+const CHAT_STORAGE_KEY = "nutritionChatHistory";
+
+const loadChatHistory = (): ChatMessage[] => {
+  const stored = localStorage.getItem(CHAT_STORAGE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return getInitialMessage();
+    }
+  }
+  return getInitialMessage();
+};
+
+const getInitialMessage = (): ChatMessage[] => [
+  {
+    role: "assistant",
+    content:
+      "Bonjour ! Pose-moi une question nutritionnelle ou demande un plan de repas.",
+  },
+];
+
+const saveChatHistory = (messages: ChatMessage[]) => {
+  localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+};
+
 export default function ChatInterface({ profile }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content:
-        "Bonjour ! Pose-moi une question nutritionnelle ou demande un plan de repas.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Charger l'historique au montage du composant
+  useEffect(() => {
+    const loadedMessages = loadChatHistory();
+    setMessages(loadedMessages);
+  }, [profile.id]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -29,7 +55,9 @@ export default function ChatInterface({ profile }: ChatInterfaceProps) {
       content: input,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    saveChatHistory(updatedMessages);
     setInput("");
     setLoading(true);
 
@@ -44,23 +72,44 @@ export default function ChatInterface({ profile }: ChatInterfaceProps) {
         content: response.explication,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
+      saveChatHistory(finalMessages);
     } catch {
-      setMessages((prev) => [
-        ...prev,
+      const errorMessages = [
+        ...updatedMessages,
         {
-          role: "assistant",
+          role: "assistant" as const,
           content:
             "❌ Une erreur est survenue. Vérifiez que le backend est démarré.",
         },
-      ]);
+      ];
+      setMessages(errorMessages);
+      saveChatHistory(errorMessages);
     } finally {
       setLoading(false);
     }
   };
 
+  const resetConversation = () => {
+    const initialMessages = getInitialMessage();
+    setMessages(initialMessages);
+    saveChatHistory(initialMessages);
+  };
+
   return (
     <div className="flex flex-col h-[600px] bg-white border border-gray-200 rounded-xl">
+      {/* HEADER AVEC BOUTON RÉINITIALISER */}
+      <div className="border-b border-gray-200 p-4 flex justify-between items-center">
+        <h3 className="font-semibold text-gray-700">Chatbot Nutritionnel</h3>
+        <button
+          onClick={resetConversation}
+          className="px-3 py-1 text-sm bg-red-100 text-red-600 rounded hover:bg-red-200 transition"
+        >
+          🗑️ Réinitialiser
+        </button>
+      </div>
+
       {/* ZONE MESSAGES */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, index) => (
